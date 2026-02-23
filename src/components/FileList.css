@@ -1,0 +1,285 @@
+.file-list-section {
+    animation: slideUp var(--transition-slow) ease-out;
+}
+
+.file-list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--spacing-lg);
+}
+
+.file-list-header h2 {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    color: var(--color-text-primary);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.file-list-count {
+    font-size: var(--font-size-xs);
+    padding: 2px 10px;
+    background: var(--color-accent-gradient);
+    border-radius: var(--radius-full);
+    color: white;
+    font-weight: 600;
+}
+
+.file-list-search {
+    position: relative;
+}
+
+.file-list-search input {
+    padding: var(--spacing-sm) var(--spacing-md) var(--spacing-sm) 2.5rem;
+    background: var(--color-bg-input);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    color: var(--color-text-primary);
+    font-size: var(--font-size-sm);
+    outline: none;
+    width: 260px;
+    transition: all var(--transition-fast);
+}
+
+.file-list-search input:focus {
+    border-color: var(--color-border-focus);
+    box-shadow: 0 0 0 3px var(--color-accent-glow);
+    background: var(--color-bg-input-focus);
+}
+
+.file-list-search-icon {
+    position: absolute;
+    left: var(--spacing-md);
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--color-text-muted);
+}
+
+/* File table */
+.file-table-container {
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+}
+
+.file-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.file-table thead th {
+    padding: var(--spacing-md) var(--spacing-lg);
+    text-align: left;
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--color-text-muted);
+    background: var(--color-bg-card);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.file-table tbody tr {
+    transition: background var(--transition-fast);
+    border-bottom: 1px solid var(--color-border);
+}
+
+.file-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.file-table tbody tr:hover {
+    background: var(--color-bg-card-hover);
+}
+
+.file-table td {
+    padding: var(--spacing-md) var(--spacing-lg);
+    font-size: var(--font-size-sm);
+}
+
+.file-name-cell {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.file-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--font-size-lg);
+    flex-shrink: 0;
+}
+
+.file-icon.image {
+    background: rgba(251, 191, 36, 0.1);
+    color: var(--color-warning);
+}
+
+.file-icon.document {
+    background: rgba(96, 165, 250, 0.1);
+    color: var(--color-info);
+}
+
+.file-icon.video {
+    background: rgba(248, 113, 113, 0.1);
+    color: var(--color-error);
+}
+
+.file-icon.code {
+    background: rgba(52, 211, 153, 0.1);
+    color: var(--color-success);
+}
+
+.file-icon.other {
+    background: rgba(148, 163, 184, 0.1);
+    color: var(--color-text-secondary);
+}
+
+.file-name-text {
+    font-weight: 500;
+    color: var(--color-text-primary);
+}
+
+.file-size {
+    color: var(--color-text-secondary);
+}
+
+.file-date {
+    color: var(--color-text-secondary);
+}
+
+/* File actions */
+.file-actions {
+    display: flex;
+    gap: var(--spacing-xs);
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+}
+
+.file-table tbody tr:hover .file-actions {
+    opacity: 1;
+}
+
+.file-action-btn {
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--color-text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--font-size-base);
+    transition: all var(--transition-fast);
+}
+
+.file-action-btn:hover {
+    background: var(--color-bg-card);
+    color: var(--color-text-primary);
+}
+
+.file-action-btn.download:hover {
+    color: var(--color-success);
+    background: var(--color-success-bg);
+}
+
+.file-action-btn.versions:hover {
+    color: var(--color-info);
+    background: var(--color-info-bg);
+}
+
+.file-action-btn.delete:hover {
+    color: var(--color-error);
+    background: var(--color-error-bg);
+}
+
+/* Empty state */
+.file-list-empty {
+    text-align: center;
+    padding: var(--spacing-2xl) var(--spacing-xl);
+}
+
+.file-list-empty-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    color: var(--color-text-muted);
+}
+
+.file-list-empty h3 {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.file-list-empty p {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-sm);
+}
+
+/* Loading skeleton */
+.file-skeleton {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md) var(--spacing-lg);
+}
+
+.file-skeleton-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(90deg, var(--color-bg-card) 25%, var(--color-bg-card-hover) 50%, var(--color-bg-card) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+.file-skeleton-text {
+    flex: 1;
+    height: 14px;
+    border-radius: var(--radius-sm);
+    background: linear-gradient(90deg, var(--color-bg-card) 25%, var(--color-bg-card-hover) 50%, var(--color-bg-card) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+}
+
+.file-skeleton-text.short {
+    width: 80px;
+    flex: none;
+}
+
+@media (max-width: 768px) {
+    .file-list-header {
+        flex-direction: column;
+        gap: var(--spacing-md);
+        align-items: flex-start;
+    }
+
+    .file-list-search input {
+        width: 100%;
+    }
+
+    .file-table td:nth-child(3),
+    .file-table th:nth-child(3) {
+        display: none;
+    }
+
+    .file-actions {
+        opacity: 1;
+    }
+}

@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "paths": {
+    "/files": {
+      "name": "/files",
+      "lambdaFunction": "blackdropbox3b62dd27",
+      "permissions": {
+        "setting": "open"
+      }
+    }
+  }
+}

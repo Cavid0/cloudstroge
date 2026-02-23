@@ -1,0 +1,14 @@
+{
+  "resourceName": "blackdropboxfiles",
+  "policyUUID": "991788c6",
+  "bucketName": "blackdropboxfiles",
+  "storageAccess": "auth",
+  "guestAccess": [],
+  "authAccess": [
+    "CREATE_AND_UPDATE",
+    "READ",
+    "DELETE"
+  ],
+  "triggerFunction": "NONE",
+  "groupAccess": {}
+}
