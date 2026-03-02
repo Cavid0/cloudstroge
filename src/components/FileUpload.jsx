@@ -2,9 +2,10 @@ import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { uploadData } from 'aws-amplify/storage';
 import { FiUploadCloud, FiFile, FiCheck, FiX } from 'react-icons/fi';
+import { STORAGE_ACCESS_LEVEL, FILE_SIZE_LIMIT, FILE_SIZE_LIMIT_LABEL } from '../constants';
 import './FileUpload.css';
 
-function FileUpload({ onUploadComplete }) {
+function FileUpload({ onUploadComplete, currentPath = '' }) {
     const [uploads, setUploads] = useState([]);
 
     const formatFileSize = (bytes) => {
@@ -16,7 +17,24 @@ function FileUpload({ onUploadComplete }) {
     };
 
     const handleUpload = async (file) => {
-        const uploadId = Date.now() + '-' + file.name;
+        // Validate file size
+        if (file.size > FILE_SIZE_LIMIT) {
+            setUploads((prev) => [
+                ...prev,
+                {
+                    id: Date.now() + '-' + file.name,
+                    name: file.name,
+                    size: file.size,
+                    progress: 0,
+                    status: 'error',
+                    error: `File exceeds ${FILE_SIZE_LIMIT_LABEL} limit`,
+                },
+            ]);
+            return;
+        }
+
+        const uploadId  = Date.now() + '-' + file.name;
+        const uploadKey = currentPath + file.name;
 
         setUploads((prev) => [
             ...prev,
@@ -32,10 +50,10 @@ function FileUpload({ onUploadComplete }) {
         try {
             // Use 'guest' accessLevel (maps to public/ prefix in S3)
             const result = uploadData({
-                key: file.name,
+                key: uploadKey,
                 data: file,
                 options: {
-                    accessLevel: 'guest',
+                    accessLevel: STORAGE_ACCESS_LEVEL,
                     contentType: file.type,
                     onProgress: ({ transferredBytes, totalBytes }) => {
                         const progress = Math.round((transferredBytes / totalBytes) * 100);
@@ -57,7 +75,7 @@ function FileUpload({ onUploadComplete }) {
             );
 
             if (onUploadComplete) {
-                onUploadComplete({ key: file.name, name: file.name, size: file.size });
+                onUploadComplete({ key: uploadKey, name: file.name, size: file.size });
             }
 
             // Clear completed uploads after 3 seconds
@@ -107,7 +125,7 @@ function FileUpload({ onUploadComplete }) {
                         <span className="browse-link">browse your computer</span>
                     </p>
                     <p className="file-upload-hint">
-                        All file types supported • Files are versioned automatically
+                        All file types supported • Max {FILE_SIZE_LIMIT_LABEL} • Files are versioned automatically
                     </p>
                 </div>
             </div>

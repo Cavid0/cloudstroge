@@ -1,10 +1,13 @@
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { getCurrentUser } from 'aws-amplify/auth';
 import Login from './components/Login';
 import Navbar from './components/Navbar';
 import FileUpload from './components/FileUpload';
 import FileList from './components/FileList';
 import FileVersions from './components/FileVersions';
+import Profile from './components/Profile';
+import ErrorBoundary from './components/ErrorBoundary';
 import {
   FiFile,
   FiHardDrive,
@@ -20,6 +23,7 @@ function App() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [toasts, setToasts] = useState([]);
   const [uploadsToday, setUploadsToday] = useState(0);
+  const [currentPath, setCurrentPath] = useState('');
   const [stats, setStats] = useState({
     totalFiles: 0,
     totalSize: '0 KB',
@@ -51,7 +55,7 @@ function App() {
   }, [uploadsToday]);
 
   // Check authentication on mount
-  useState(() => {
+  useEffect(() => {
     const checkAuth = async () => {
       try {
         const currentUser = await getCurrentUser();
@@ -62,7 +66,7 @@ function App() {
       }
     };
     checkAuth();
-  });
+  }, []);
 
   const handleLoginSuccess = async () => {
     try {
@@ -79,19 +83,19 @@ function App() {
     setIsAuthenticated(false);
   };
 
-  const handleUploadComplete = useCallback(() => {
-    setRefreshTrigger((prev) => prev + 1);
-    setUploadsToday((prev) => prev + 1);
-    showToast('File uploaded successfully!', 'success');
-  }, []);
-
-  const showToast = (message, type = 'info') => {
+  const showToast = useCallback((message, type = 'info') => {
     const id = Date.now();
     setToasts((prev) => [...prev, { id, message, type }]);
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
     }, 4000);
-  };
+  }, []);
+
+  const handleUploadComplete = useCallback(() => {
+    setRefreshTrigger((prev) => prev + 1);
+    setUploadsToday((prev) => prev + 1);
+    showToast('File uploaded successfully!', 'success');
+  }, [showToast]);
 
   const handleShowVersions = (file) => {
     setSelectedFile(file);
@@ -112,7 +116,73 @@ function App() {
     return <Login onLoginSuccess={handleLoginSuccess} />;
   }
 
-  // Authenticated - Dashboard
+  // Dashboard content
+  const dashboardContent = (
+    <main className="app-main">
+      <div className="dashboard">
+        <div className="dashboard-header">
+          <h1>Your Cloud Storage</h1>
+          <p>Upload, manage, and version your files securely in the cloud</p>
+        </div>
+
+        {/* Stats */}
+        <div className="stats-bar">
+          <div className="stat-card glass glass-hover">
+            <div className="stat-icon"><FiFile /></div>
+            <div className="stat-content">
+              <h3>{stats.totalFiles}</h3>
+              <p>Total Files</p>
+            </div>
+          </div>
+          <div className="stat-card glass glass-hover">
+            <div className="stat-icon"><FiHardDrive /></div>
+            <div className="stat-content">
+              <h3>{stats.totalSize}</h3>
+              <p>Storage Used</p>
+            </div>
+          </div>
+          <div className="stat-card glass glass-hover">
+            <div className="stat-icon"><FiUploadCloud /></div>
+            <div className="stat-content">
+              <h3>{stats.uploadsToday}</h3>
+              <p>Uploads Today</p>
+            </div>
+          </div>
+          <div className="stat-card glass glass-hover">
+            <div className="stat-icon"><FiClock /></div>
+            <div className="stat-content">
+              <h3>{stats.versions}</h3>
+              <p>File Versions</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Upload area */}
+        <FileUpload onUploadComplete={handleUploadComplete} currentPath={currentPath} />
+
+        {/* File list */}
+        <ErrorBoundary>
+          <FileList
+            onShowVersions={handleShowVersions}
+            refreshTrigger={refreshTrigger}
+            onToast={showToast}
+            onFilesLoaded={handleFilesLoaded}
+            onFolderChange={setCurrentPath}
+          />
+        </ErrorBoundary>
+      </div>
+
+      {/* Version history modal */}
+      {selectedFile && (
+        <FileVersions
+          file={selectedFile}
+          onClose={() => setSelectedFile(null)}
+        />
+      )}
+    </main>
+  );
+
+  // Authenticated - with routing
   return (
     <div className="app">
       <Navbar user={user} onSignOut={handleSignOut} />
@@ -128,65 +198,18 @@ function App() {
         </div>
       )}
 
-      <main className="app-main">
-        <div className="dashboard">
-          <div className="dashboard-header">
-            <h1>Your Cloud Storage</h1>
-            <p>Upload, manage, and version your files securely in the cloud</p>
-          </div>
-
-          {/* Stats */}
-          <div className="stats-bar">
-            <div className="stat-card glass glass-hover">
-              <div className="stat-icon"><FiFile /></div>
-              <div className="stat-content">
-                <h3>{stats.totalFiles}</h3>
-                <p>Total Files</p>
-              </div>
-            </div>
-            <div className="stat-card glass glass-hover">
-              <div className="stat-icon"><FiHardDrive /></div>
-              <div className="stat-content">
-                <h3>{stats.totalSize}</h3>
-                <p>Storage Used</p>
-              </div>
-            </div>
-            <div className="stat-card glass glass-hover">
-              <div className="stat-icon"><FiUploadCloud /></div>
-              <div className="stat-content">
-                <h3>{stats.uploadsToday}</h3>
-                <p>Uploads Today</p>
-              </div>
-            </div>
-            <div className="stat-card glass glass-hover">
-              <div className="stat-icon"><FiClock /></div>
-              <div className="stat-content">
-                <h3>{stats.versions}</h3>
-                <p>File Versions</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Upload area */}
-          <FileUpload onUploadComplete={handleUploadComplete} />
-
-          {/* File list */}
-          <FileList
-            onShowVersions={handleShowVersions}
-            refreshTrigger={refreshTrigger}
-            onToast={showToast}
-            onFilesLoaded={handleFilesLoaded}
+      <ErrorBoundary>
+        <Routes>
+          <Route path="/" element={dashboardContent} />
+          <Route
+            path="/profile"
+            element={
+              <Profile user={user} onSignOut={handleSignOut} onToast={showToast} />
+            }
           />
-        </div>
-      </main>
-
-      {/* Version history modal */}
-      {selectedFile && (
-        <FileVersions
-          file={selectedFile}
-          onClose={() => setSelectedFile(null)}
-        />
-      )}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </ErrorBoundary>
     </div>
   );
 }
