@@ -6,7 +6,6 @@ import awsExports from './aws-exports';
 import App from './App';
 import './index.css';
 
-// Configure Amplify with auto-generated AWS settings
 Amplify.configure(awsExports);
 
 createRoot(document.getElementById('root')).render(

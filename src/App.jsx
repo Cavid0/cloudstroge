@@ -54,7 +54,6 @@ function App() {
     });
   }, [uploadsToday]);
 
-  // Check authentication on mount
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -101,7 +100,6 @@ function App() {
     setSelectedFile(file);
   };
 
-  // Loading state
   if (isAuthenticated === null) {
     return (
       <div className="loading-screen">
@@ -111,12 +109,10 @@ function App() {
     );
   }
 
-  // Not authenticated
   if (!isAuthenticated) {
     return <Login onLoginSuccess={handleLoginSuccess} />;
   }
 
-  // Dashboard content
   const dashboardContent = (
     <main className="app-main">
       <div className="dashboard">
@@ -125,7 +121,6 @@ function App() {
           <p>Upload, manage, and version your files securely in the cloud</p>
         </div>
 
-        {/* Stats */}
         <div className="stats-bar">
           <div className="stat-card glass glass-hover">
             <div className="stat-icon"><FiFile /></div>
@@ -157,10 +152,8 @@ function App() {
           </div>
         </div>
 
-        {/* Upload area */}
         <FileUpload onUploadComplete={handleUploadComplete} currentPath={currentPath} />
 
-        {/* File list */}
         <ErrorBoundary>
           <FileList
             onShowVersions={handleShowVersions}
@@ -172,7 +165,6 @@ function App() {
         </ErrorBoundary>
       </div>
 
-      {/* Version history modal */}
       {selectedFile && (
         <FileVersions
           file={selectedFile}
@@ -182,12 +174,10 @@ function App() {
     </main>
   );
 
-  // Authenticated - with routing
   return (
     <div className="app">
       <Navbar user={user} onSignOut={handleSignOut} />
 
-      {/* Toast notifications */}
       {toasts.length > 0 && (
         <div className="toast-container">
           {toasts.map((toast) => (

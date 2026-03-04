@@ -17,7 +17,6 @@ function FileUpload({ onUploadComplete, currentPath = '' }) {
     };
 
     const handleUpload = async (file) => {
-        // Validate file size
         if (file.size > FILE_SIZE_LIMIT) {
             setUploads((prev) => [
                 ...prev,
@@ -33,7 +32,7 @@ function FileUpload({ onUploadComplete, currentPath = '' }) {
             return;
         }
 
-        const uploadId  = Date.now() + '-' + file.name;
+        const uploadId = Date.now() + '-' + file.name;
         const uploadKey = currentPath + file.name;
 
         setUploads((prev) => [
@@ -48,7 +47,6 @@ function FileUpload({ onUploadComplete, currentPath = '' }) {
         ]);
 
         try {
-            // Use 'guest' accessLevel (maps to public/ prefix in S3)
             const result = uploadData({
                 key: uploadKey,
                 data: file,
@@ -78,7 +76,6 @@ function FileUpload({ onUploadComplete, currentPath = '' }) {
                 onUploadComplete({ key: uploadKey, name: file.name, size: file.size });
             }
 
-            // Clear completed uploads after 3 seconds
             setTimeout(() => {
                 setUploads((prev) => prev.filter((u) => u.id !== uploadId));
             }, 3000);

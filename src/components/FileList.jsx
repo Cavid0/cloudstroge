@@ -29,7 +29,7 @@ import {
     FOLDER_PLACEHOLDER,
 } from '../constants';
 import FilePreview from './FilePreview';
-import FileShare   from './FileShare';
+import FileShare from './FileShare';
 import './FileList.css';
 
 function getFileType(filename) {
@@ -37,20 +37,20 @@ function getFileType(filename) {
     if (IMAGE_EXTENSIONS.includes(ext)) return 'image';
     if (VIDEO_EXTENSIONS.includes(ext)) return 'video';
     if (AUDIO_EXTENSIONS.includes(ext)) return 'audio';
-    if (PDF_EXTENSIONS.includes(ext))   return 'document';
-    if (DOC_EXTENSIONS.includes(ext))   return 'document';
-    if (CODE_EXTENSIONS.includes(ext))  return 'code';
+    if (PDF_EXTENSIONS.includes(ext)) return 'document';
+    if (DOC_EXTENSIONS.includes(ext)) return 'document';
+    if (CODE_EXTENSIONS.includes(ext)) return 'code';
     return 'other';
 }
 
 function getFileIcon(type) {
     switch (type) {
-        case 'image':    return <FiImage />;
+        case 'image': return <FiImage />;
         case 'document': return <FiFileText />;
-        case 'video':    return <FiFilm />;
-        case 'audio':    return <FiFilm />;
-        case 'code':     return <FiCode />;
-        default:         return <FiFile />;
+        case 'video': return <FiFilm />;
+        case 'audio': return <FiFilm />;
+        case 'code': return <FiCode />;
+        default: return <FiFile />;
     }
 }
 
@@ -70,9 +70,8 @@ function formatDate(date) {
     });
 }
 
-/** Parse a flat list of S3 keys into virtual folders + files at `prefix` depth. */
 function parseItems(rawItems, currentPrefix) {
-    const folderSet   = new Set();
+    const folderSet = new Set();
     const directFiles = [];
 
     for (const item of rawItems) {
@@ -98,7 +97,7 @@ function parseItems(rawItems, currentPrefix) {
     }
 
     const folders = Array.from(folderSet).map((name) => ({
-        key:      currentPrefix + name + '/',
+        key: currentPrefix + name + '/',
         name,
         isFolder: true,
     }));
@@ -106,18 +105,16 @@ function parseItems(rawItems, currentPrefix) {
     return { folders, files: directFiles };
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-
 function FileList({ onShowVersions, refreshTrigger, onToast, onFilesLoaded, onFolderChange }) {
-    const [rawItems, setRawItems]               = useState([]);
-    const [currentPrefix, setCurrentPrefix]     = useState('');
-    const [loading, setLoading]                 = useState(true);
-    const [search, setSearch]                   = useState('');
-    const [creatingFolder, setCreatingFolder]   = useState(false);
-    const [newFolderName, setNewFolderName]     = useState('');
-    const [savingFolder, setSavingFolder]       = useState(false);
-    const [previewFile, setPreviewFile]         = useState(null);
-    const [shareFile, setShareFile]             = useState(null);
+    const [rawItems, setRawItems] = useState([]);
+    const [currentPrefix, setCurrentPrefix] = useState('');
+    const [loading, setLoading] = useState(true);
+    const [search, setSearch] = useState('');
+    const [creatingFolder, setCreatingFolder] = useState(false);
+    const [newFolderName, setNewFolderName] = useState('');
+    const [savingFolder, setSavingFolder] = useState(false);
+    const [previewFile, setPreviewFile] = useState(null);
+    const [shareFile, setShareFile] = useState(null);
 
     const breadcrumbs = currentPrefix
         ? currentPrefix.slice(0, -1).split('/')
@@ -143,23 +140,21 @@ function FileList({ onShowVersions, refreshTrigger, onToast, onFilesLoaded, onFo
 
     useEffect(() => { fetchAll(); }, [refreshTrigger]);
 
-    // Notify parent of folder changes so FileUpload targets correct path
     useEffect(() => { onFolderChange?.(currentPrefix); }, [currentPrefix]);
 
     const { folders, files } = parseItems(rawItems, currentPrefix);
 
     const displayFolders = search ? [] : folders;
-    const displayFiles   = search
+    const displayFiles = search
         ? rawItems
-              .filter((i) => i.key && !i.key.endsWith(FOLDER_PLACEHOLDER))
-              .filter((i) => i.key.toLowerCase().includes(search.toLowerCase()))
-              .map((i) => ({
-                  key: i.key, name: i.key, size: i.size,
-                  lastModified: i.lastModified, type: getFileType(i.key),
-              }))
+            .filter((i) => i.key && !i.key.endsWith(FOLDER_PLACEHOLDER))
+            .filter((i) => i.key.toLowerCase().includes(search.toLowerCase()))
+            .map((i) => ({
+                key: i.key, name: i.key, size: i.size,
+                lastModified: i.lastModified, type: getFileType(i.key),
+            }))
         : files;
 
-    // ── Navigation ───────────────────────────────────────────────────────
     const openFolder = (folderKey) => { setSearch(''); setCurrentPrefix(folderKey); };
 
     const navigateTo = (idx) => {
@@ -169,7 +164,6 @@ function FileList({ onShowVersions, refreshTrigger, onToast, onFilesLoaded, onFo
         setCurrentPrefix(parts.join('/') + '/');
     };
 
-    // ── Create folder ────────────────────────────────────────────────────
     const handleCreateFolder = async () => {
         const trimmed = newFolderName.trim();
         if (!trimmed) { onToast?.('Folder name cannot be empty', 'error'); return; }
@@ -194,7 +188,6 @@ function FileList({ onShowVersions, refreshTrigger, onToast, onFilesLoaded, onFo
         }
     };
 
-    // ── Download ─────────────────────────────────────────────────────────
     const handleDownload = async (file) => {
         try {
             const urlResult = await getUrl({
@@ -209,7 +202,6 @@ function FileList({ onShowVersions, refreshTrigger, onToast, onFilesLoaded, onFo
         }
     };
 
-    // ── Delete file ──────────────────────────────────────────────────────
     const handleDelete = async (file) => {
         if (!window.confirm(`Delete "${file.name}"? This cannot be undone.`)) return;
         try {
@@ -222,7 +214,6 @@ function FileList({ onShowVersions, refreshTrigger, onToast, onFilesLoaded, onFo
         }
     };
 
-    // ── Delete folder recursively ────────────────────────────────────────
     const handleDeleteFolder = async (folder) => {
         if (!window.confirm(`Delete folder "${folder.name}" and ALL its contents? This cannot be undone.`)) return;
         try {
@@ -241,7 +232,6 @@ function FileList({ onShowVersions, refreshTrigger, onToast, onFilesLoaded, onFo
     return (
         <>
             <div className="file-list-section">
-                {/* ── Header ── */}
                 <div className="file-list-header">
                     <div className="file-list-title-row">
                         <h2>
@@ -261,7 +251,6 @@ function FileList({ onShowVersions, refreshTrigger, onToast, onFilesLoaded, onFo
                         </button>
                     </div>
 
-                    {/* Breadcrumb */}
                     <nav className="breadcrumb">
                         <button
                             className={`breadcrumb-item ${currentPrefix === '' ? 'active' : ''}`}
@@ -293,7 +282,6 @@ function FileList({ onShowVersions, refreshTrigger, onToast, onFilesLoaded, onFo
                     </div>
                 </div>
 
-                {/* New folder bar */}
                 {creatingFolder && (
                     <div className="new-folder-bar glass">
                         <FiFolder className="new-folder-icon" />
@@ -304,13 +292,13 @@ function FileList({ onShowVersions, refreshTrigger, onToast, onFilesLoaded, onFo
                             value={newFolderName}
                             onChange={(e) => setNewFolderName(e.target.value)}
                             onKeyDown={(e) => {
-                                if (e.key === 'Enter')  handleCreateFolder();
+                                if (e.key === 'Enter') handleCreateFolder();
                                 if (e.key === 'Escape') { setCreatingFolder(false); setNewFolderName(''); }
                             }}
                             autoFocus
                             maxLength={80}
                         />
-                        <button className="new-folder-save"   onClick={handleCreateFolder} disabled={savingFolder}>
+                        <button className="new-folder-save" onClick={handleCreateFolder} disabled={savingFolder}>
                             {savingFolder ? '…' : 'Create'}
                         </button>
                         <button className="new-folder-cancel" onClick={() => { setCreatingFolder(false); setNewFolderName(''); }}>
@@ -319,7 +307,6 @@ function FileList({ onShowVersions, refreshTrigger, onToast, onFilesLoaded, onFo
                     </div>
                 )}
 
-                {/* Content */}
                 {loading ? (
                     <div className="file-table-container glass">
                         {[1, 2, 3].map((i) => (
@@ -374,7 +361,7 @@ function FileList({ onShowVersions, refreshTrigger, onToast, onFilesLoaded, onFo
                                         <td className="file-date">—</td>
                                         <td>
                                             <div className="file-actions">
-                                                <button className="file-action-btn open"   title="Open"   onClick={() => openFolder(folder.key)}><FiFolder /></button>
+                                                <button className="file-action-btn open" title="Open" onClick={() => openFolder(folder.key)}><FiFolder /></button>
                                                 <button className="file-action-btn delete" title="Delete" onClick={() => handleDeleteFolder(folder)}><FiTrash2 /></button>
                                             </div>
                                         </td>
@@ -393,11 +380,11 @@ function FileList({ onShowVersions, refreshTrigger, onToast, onFilesLoaded, onFo
                                         <td className="file-date">{formatDate(file.lastModified)}</td>
                                         <td>
                                             <div className="file-actions">
-                                                <button className="file-action-btn preview"  title="Preview"  onClick={() => setPreviewFile(file)}><FiEye /></button>
-                                                <button className="file-action-btn share"    title="Share"    onClick={() => setShareFile(file)}><FiShare2 /></button>
+                                                <button className="file-action-btn preview" title="Preview" onClick={() => setPreviewFile(file)}><FiEye /></button>
+                                                <button className="file-action-btn share" title="Share" onClick={() => setShareFile(file)}><FiShare2 /></button>
                                                 <button className="file-action-btn download" title="Download" onClick={() => handleDownload(file)}><FiDownload /></button>
                                                 <button className="file-action-btn versions" title="Versions" onClick={() => onShowVersions?.(file)}><FiClock /></button>
-                                                <button className="file-action-btn delete"   title="Delete"   onClick={() => handleDelete(file)}><FiTrash2 /></button>
+                                                <button className="file-action-btn delete" title="Delete" onClick={() => handleDelete(file)}><FiTrash2 /></button>
                                             </div>
                                         </td>
                                     </tr>

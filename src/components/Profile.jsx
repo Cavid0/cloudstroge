@@ -19,31 +19,28 @@ import { STORAGE_ACCESS_LEVEL } from '../constants';
 import './Profile.css';
 
 function Profile({ user, onSignOut, onToast }) {
-  const [attrs, setAttrs]               = useState({ name: '', email: '' });
+  const [attrs, setAttrs] = useState({ name: '', email: '' });
   const [loadingAttrs, setLoadingAttrs] = useState(true);
 
-  // Change name
-  const [name, setName]               = useState('');
-  const [savingName, setSavingName]   = useState(false);
+  const [name, setName] = useState('');
+  const [savingName, setSavingName] = useState(false);
 
-  // Change password
-  const [oldPwd, setOldPwd]             = useState('');
-  const [newPwd, setNewPwd]             = useState('');
-  const [savingPwd, setSavingPwd]       = useState(false);
-  const [pwdError, setPwdError]         = useState('');
+  const [oldPwd, setOldPwd] = useState('');
+  const [newPwd, setNewPwd] = useState('');
+  const [savingPwd, setSavingPwd] = useState(false);
+  const [pwdError, setPwdError] = useState('');
 
-  // Delete account
   const [confirmDelete, setConfirmDelete] = useState('');
-  const [deleting, setDeleting]           = useState(false);
-  const [deletePhase, setDeletePhase]     = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [deletePhase, setDeletePhase] = useState('');
 
   useEffect(() => {
     const load = async () => {
       setLoadingAttrs(true);
       try {
         const userAttrs = await fetchUserAttributes();
-        const fullName  = userAttrs.name || '';
-        const email     = userAttrs.email || user?.signInDetails?.loginId || '';
+        const fullName = userAttrs.name || '';
+        const email = userAttrs.email || user?.signInDetails?.loginId || '';
         setAttrs({ name: fullName, email });
         setName(fullName);
       } catch (err) {
@@ -55,7 +52,6 @@ function Profile({ user, onSignOut, onToast }) {
     load();
   }, [user]);
 
-  // ── Update name ──────────────────────────────────────────────────────────
   const handleSaveName = async (e) => {
     e.preventDefault();
     const trimmed = name.trim();
@@ -72,7 +68,6 @@ function Profile({ user, onSignOut, onToast }) {
     }
   };
 
-  // ── Change password ──────────────────────────────────────────────────────
   const handleSavePwd = async (e) => {
     e.preventDefault();
     setPwdError('');
@@ -93,7 +88,6 @@ function Profile({ user, onSignOut, onToast }) {
     }
   };
 
-  // ── Delete account ───────────────────────────────────────────────────────
   const handleDeleteAccount = async () => {
     if (confirmDelete !== 'DELETE') {
       onToast?.('Please type DELETE to confirm', 'error');
@@ -101,7 +95,6 @@ function Profile({ user, onSignOut, onToast }) {
     }
     setDeleting(true);
     try {
-      // 1. List and remove all files
       setDeletePhase('Removing your files…');
       const result = await list({
         prefix: '',
@@ -114,7 +107,6 @@ function Profile({ user, onSignOut, onToast }) {
         )
       );
 
-      // 2. Delete Cognito user
       setDeletePhase('Deleting your account…');
       await deleteUser();
 
@@ -145,7 +137,6 @@ function Profile({ user, onSignOut, onToast }) {
           </div>
         </div>
 
-        {/* ── Edit name ─────────────────────────────────────── */}
         <section className="profile-section glass">
           <div className="profile-section-header">
             <FiUser className="profile-section-icon" />
@@ -185,7 +176,6 @@ function Profile({ user, onSignOut, onToast }) {
           </form>
         </section>
 
-        {/* ── Change password ───────────────────────────────── */}
         <section className="profile-section glass">
           <div className="profile-section-header">
             <FiLock className="profile-section-icon" />
@@ -233,7 +223,6 @@ function Profile({ user, onSignOut, onToast }) {
           </form>
         </section>
 
-        {/* ── Danger zone ───────────────────────────────────── */}
         <section className="profile-section glass danger">
           <div className="profile-section-header">
             <FiAlertTriangle className="profile-section-icon danger" />

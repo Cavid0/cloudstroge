@@ -4,7 +4,7 @@ import { FiMail, FiLock, FiUser, FiBox } from 'react-icons/fi';
 import './Login.css';
 
 function Login({ onLoginSuccess }) {
-    const [mode, setMode] = useState('signin'); // 'signin', 'signup', 'confirm'
+    const [mode, setMode] = useState('signin');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [name, setName] = useState('');
@@ -55,7 +55,6 @@ function Login({ onLoginSuccess }) {
         setLoading(true);
         try {
             await confirmSignUp({ username: email, confirmationCode: confirmCode });
-            // Auto sign-in after confirmation
             await signIn({ username: email, password });
             onLoginSuccess();
         } catch (err) {

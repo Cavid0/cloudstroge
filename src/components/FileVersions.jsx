@@ -30,7 +30,6 @@ function FileVersions({ file, onClose }) {
         const fetchVersions = async () => {
             setLoading(true);
             try {
-                // Call the Lambda API to get file versions
                 const apiEndpoint = import.meta.env.VITE_API_ENDPOINT || '';
                 if (apiEndpoint) {
                     const response = await fetch(
@@ -44,7 +43,6 @@ function FileVersions({ file, onClose }) {
                     const data = await response.json();
                     setVersions(data.versions || []);
                 } else {
-                    // Fallback: show single current version when API is not configured
                     setVersions([
                         {
                             versionId: 'current',
@@ -56,7 +54,6 @@ function FileVersions({ file, onClose }) {
                 }
             } catch (err) {
                 console.error('Error fetching versions:', err);
-                // Fallback
                 setVersions([
                     {
                         versionId: 'current',
