@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { getCurrentUser } from 'aws-amplify/auth';
+import { getCurrentUser, fetchUserAttributes } from 'aws-amplify/auth';
 import Login from './components/Login';
 import Navbar from './components/Navbar';
 import FileUpload from './components/FileUpload';
 import FileList from './components/FileList';
 import FileVersions from './components/FileVersions';
 import Profile from './components/Profile';
+import SharedFileView from './components/SharedFileView';
 import ErrorBoundary from './components/ErrorBoundary';
 import {
   FiFile,
@@ -19,6 +20,7 @@ import './App.css';
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(null);
   const [user, setUser] = useState(null);
+  const [userName, setUserName] = useState('');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [selectedFile, setSelectedFile] = useState(null);
   const [toasts, setToasts] = useState([]);
@@ -55,11 +57,16 @@ function App() {
   }, [uploadsToday]);
 
   useEffect(() => {
+    if (window.location.pathname.startsWith('/share/')) return;
     const checkAuth = async () => {
       try {
         const currentUser = await getCurrentUser();
         setUser(currentUser);
         setIsAuthenticated(true);
+        try {
+          const attrs = await fetchUserAttributes();
+          setUserName(attrs.name || '');
+        } catch { /* ignore */ }
       } catch {
         setIsAuthenticated(false);
       }
@@ -72,6 +79,10 @@ function App() {
       const currentUser = await getCurrentUser();
       setUser(currentUser);
       setIsAuthenticated(true);
+      try {
+        const attrs = await fetchUserAttributes();
+        setUserName(attrs.name || '');
+      } catch { /* ignore */ }
     } catch (err) {
       console.error('Error getting user:', err);
     }
@@ -79,6 +90,7 @@ function App() {
 
   const handleSignOut = () => {
     setUser(null);
+    setUserName('');
     setIsAuthenticated(false);
   };
 
@@ -99,6 +111,14 @@ function App() {
   const handleShowVersions = (file) => {
     setSelectedFile(file);
   };
+
+  if (window.location.pathname.startsWith('/share/')) {
+    return (
+      <ErrorBoundary>
+        <SharedFileView />
+      </ErrorBoundary>
+    );
+  }
 
   if (isAuthenticated === null) {
     return (
@@ -123,28 +143,36 @@ function App() {
 
         <div className="stats-bar">
           <div className="stat-card glass glass-hover">
-            <div className="stat-icon"><FiFile /></div>
+            <div className="stat-icon">
+              <FiFile />
+            </div>
             <div className="stat-content">
               <h3>{stats.totalFiles}</h3>
               <p>Total Files</p>
             </div>
           </div>
           <div className="stat-card glass glass-hover">
-            <div className="stat-icon"><FiHardDrive /></div>
+            <div className="stat-icon storage">
+              <FiHardDrive />
+            </div>
             <div className="stat-content">
               <h3>{stats.totalSize}</h3>
               <p>Storage Used</p>
             </div>
           </div>
           <div className="stat-card glass glass-hover">
-            <div className="stat-icon"><FiUploadCloud /></div>
+            <div className="stat-icon uploads">
+              <FiUploadCloud />
+            </div>
             <div className="stat-content">
               <h3>{stats.uploadsToday}</h3>
               <p>Uploads Today</p>
             </div>
           </div>
           <div className="stat-card glass glass-hover">
-            <div className="stat-icon"><FiClock /></div>
+            <div className="stat-icon versions">
+              <FiClock />
+            </div>
             <div className="stat-content">
               <h3>{stats.versions}</h3>
               <p>File Versions</p>
@@ -176,7 +204,7 @@ function App() {
 
   return (
     <div className="app">
-      <Navbar user={user} onSignOut={handleSignOut} />
+      <Navbar user={user} userName={userName} onSignOut={handleSignOut} />
 
       {toasts.length > 0 && (
         <div className="toast-container">
@@ -194,7 +222,7 @@ function App() {
           <Route
             path="/profile"
             element={
-              <Profile user={user} onSignOut={handleSignOut} onToast={showToast} />
+              <Profile user={user} onSignOut={handleSignOut} onToast={showToast} onNameChange={setUserName} />
             }
           />
           <Route path="*" element={<Navigate to="/" replace />} />

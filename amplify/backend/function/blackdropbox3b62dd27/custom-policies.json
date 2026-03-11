@@ -1,6 +1,13 @@
 [
   {
-    "Action": [],
-    "Resource": []
+    "Action": [
+      "s3:ListBucketVersions",
+      "s3:GetObjectVersion",
+      "s3:ListObjectVersions"
+    ],
+    "Resource": [
+      "arn:aws:s3:::blackdropboxfilesda4d9-dev",
+      "arn:aws:s3:::blackdropboxfilesda4d9-dev/*"
+    ]
   }
 ]

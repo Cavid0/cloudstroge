@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { list, remove, getUrl, uploadData } from 'aws-amplify/storage';
+import { list, remove, getUrl, uploadData, copy } from 'aws-amplify/storage';
 import {
     FiSearch,
     FiDownload,
@@ -17,6 +17,8 @@ import {
     FiChevronRight,
     FiHome,
     FiArrowLeft,
+    FiEdit2,
+    FiAlertTriangle,
 } from 'react-icons/fi';
 import {
     STORAGE_ACCESS_LEVEL,
@@ -77,11 +79,9 @@ function parseItems(rawItems, currentPrefix) {
     for (const item of rawItems) {
         const key = item.key;
         if (!key.startsWith(currentPrefix)) continue;
-
         const relative = key.slice(currentPrefix.length);
         if (!relative) continue;
         if (relative === FOLDER_PLACEHOLDER) continue;
-
         const slashIdx = relative.indexOf('/');
         if (slashIdx === -1) {
             directFiles.push({
@@ -105,6 +105,21 @@ function parseItems(rawItems, currentPrefix) {
     return { folders, files: directFiles };
 }
 
+function ConfirmDialog({ message, onConfirm, onCancel }) {
+    return (
+        <div className="confirm-overlay" onClick={(e) => e.target === e.currentTarget && onCancel()}>
+            <div className="confirm-dialog glass">
+                <div className="confirm-icon"><FiAlertTriangle /></div>
+                <p className="confirm-message">{message}</p>
+                <div className="confirm-actions">
+                    <button className="confirm-btn cancel" onClick={onCancel}>Cancel</button>
+                    <button className="confirm-btn danger" onClick={onConfirm}>Delete</button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 function FileList({ onShowVersions, refreshTrigger, onToast, onFilesLoaded, onFolderChange }) {
     const [rawItems, setRawItems] = useState([]);
     const [currentPrefix, setCurrentPrefix] = useState('');
@@ -115,6 +130,10 @@ function FileList({ onShowVersions, refreshTrigger, onToast, onFilesLoaded, onFo
     const [savingFolder, setSavingFolder] = useState(false);
     const [previewFile, setPreviewFile] = useState(null);
     const [shareFile, setShareFile] = useState(null);
+    const [confirmAction, setConfirmAction] = useState(null);
+    const [renamingItem, setRenamingItem] = useState(null);
+    const [renameValue, setRenameValue] = useState('');
+    const [renaming, setRenaming] = useState(false);
 
     const breadcrumbs = currentPrefix
         ? currentPrefix.slice(0, -1).split('/')
@@ -130,8 +149,7 @@ function FileList({ onShowVersions, refreshTrigger, onToast, onFilesLoaded, onFo
             const items = (result.items || []).filter((i) => i.key && i.key.length > 0);
             setRawItems(items);
             onFilesLoaded?.(items);
-        } catch (err) {
-            console.error('Error listing files:', err);
+        } catch {
             onToast?.('Failed to load files', 'error');
         } finally {
             setLoading(false);
@@ -180,8 +198,7 @@ function FileList({ onShowVersions, refreshTrigger, onToast, onFilesLoaded, onFo
             setCreatingFolder(false);
             onToast?.(`Folder "${trimmed}" created`, 'success');
             fetchAll();
-        } catch (err) {
-            console.error('Create folder error:', err);
+        } catch {
             onToast?.('Failed to create folder', 'error');
         } finally {
             setSavingFolder(false);
@@ -196,36 +213,86 @@ function FileList({ onShowVersions, refreshTrigger, onToast, onFilesLoaded, onFo
             });
             window.open(urlResult.url.toString(), '_blank');
             onToast?.('Download started', 'success');
-        } catch (err) {
-            console.error('Download error:', err);
+        } catch {
             onToast?.('Failed to download file', 'error');
         }
     };
 
-    const handleDelete = async (file) => {
-        if (!window.confirm(`Delete "${file.name}"? This cannot be undone.`)) return;
-        try {
-            await remove({ key: file.key, options: { accessLevel: STORAGE_ACCESS_LEVEL } });
-            setRawItems((prev) => prev.filter((i) => i.key !== file.key));
-            onToast?.(`"${file.name}" deleted`, 'success');
-        } catch (err) {
-            console.error('Delete error:', err);
-            onToast?.('Failed to delete file', 'error');
-        }
+    const askDeleteFile = (file) => {
+        setConfirmAction({
+            message: `Delete "${file.name}"? This cannot be undone.`,
+            onConfirm: async () => {
+                setConfirmAction(null);
+                try {
+                    await remove({ key: file.key, options: { accessLevel: STORAGE_ACCESS_LEVEL } });
+                    setRawItems((prev) => prev.filter((i) => i.key !== file.key));
+                    onToast?.(`"${file.name}" deleted`, 'success');
+                } catch {
+                    onToast?.('Failed to delete file', 'error');
+                }
+            },
+        });
     };
 
-    const handleDeleteFolder = async (folder) => {
-        if (!window.confirm(`Delete folder "${folder.name}" and ALL its contents? This cannot be undone.`)) return;
+    const askDeleteFolder = (folder) => {
+        setConfirmAction({
+            message: `Delete folder "${folder.name}" and all its contents? This cannot be undone.`,
+            onConfirm: async () => {
+                setConfirmAction(null);
+                try {
+                    const toDelete = rawItems.filter((i) => i.key.startsWith(folder.key));
+                    await Promise.all(
+                        toDelete.map((i) => remove({ key: i.key, options: { accessLevel: STORAGE_ACCESS_LEVEL } }))
+                    );
+                    setRawItems((prev) => prev.filter((i) => !i.key.startsWith(folder.key)));
+                    onToast?.(`Folder "${folder.name}" deleted`, 'success');
+                } catch {
+                    onToast?.('Failed to delete folder', 'error');
+                }
+            },
+        });
+    };
+
+    const startRename = (item) => {
+        setRenamingItem(item);
+        setRenameValue(item.name);
+    };
+
+    const handleRename = async () => {
+        const trimmed = renameValue.trim();
+        if (!trimmed || trimmed === renamingItem.name) { setRenamingItem(null); return; }
+        if (/[/\\]/.test(trimmed)) { onToast?.('Name cannot contain slashes', 'error'); return; }
+        setRenaming(true);
         try {
-            const toDelete = rawItems.filter((i) => i.key.startsWith(folder.key));
-            await Promise.all(
-                toDelete.map((i) => remove({ key: i.key, options: { accessLevel: STORAGE_ACCESS_LEVEL } }))
-            );
-            setRawItems((prev) => prev.filter((i) => !i.key.startsWith(folder.key)));
-            onToast?.(`Folder "${folder.name}" deleted`, 'success');
-        } catch (err) {
-            console.error('Delete folder error:', err);
-            onToast?.('Failed to delete folder', 'error');
+            if (renamingItem.isFolder) {
+                const oldPrefix = renamingItem.key;
+                const newPrefix = currentPrefix + trimmed + '/';
+                const toMove = rawItems.filter((i) => i.key.startsWith(oldPrefix));
+                await Promise.all(
+                    toMove.map(async (i) => {
+                        const newKey = newPrefix + i.key.slice(oldPrefix.length);
+                        await copy({
+                            source: { key: i.key, accessLevel: STORAGE_ACCESS_LEVEL },
+                            destination: { key: newKey, accessLevel: STORAGE_ACCESS_LEVEL },
+                        });
+                        await remove({ key: i.key, options: { accessLevel: STORAGE_ACCESS_LEVEL } });
+                    })
+                );
+            } else {
+                const newKey = currentPrefix + trimmed;
+                await copy({
+                    source: { key: renamingItem.key, accessLevel: STORAGE_ACCESS_LEVEL },
+                    destination: { key: newKey, accessLevel: STORAGE_ACCESS_LEVEL },
+                });
+                await remove({ key: renamingItem.key, options: { accessLevel: STORAGE_ACCESS_LEVEL } });
+            }
+            onToast?.(`Renamed to "${trimmed}"`, 'success');
+            setRenamingItem(null);
+            fetchAll();
+        } catch {
+            onToast?.('Failed to rename', 'error');
+        } finally {
+            setRenaming(false);
         }
     };
 
@@ -352,9 +419,29 @@ function FileList({ onShowVersions, refreshTrigger, onToast, onFilesLoaded, onFo
                                         <td>
                                             <div className="file-name-cell">
                                                 <div className="file-icon folder"><FiFolder /></div>
-                                                <button className="folder-name-btn" onClick={() => openFolder(folder.key)}>
-                                                    {folder.name}
-                                                </button>
+                                                {renamingItem?.key === folder.key ? (
+                                                    <div className="rename-input-wrap">
+                                                        <input
+                                                            className="rename-input"
+                                                            value={renameValue}
+                                                            onChange={(e) => setRenameValue(e.target.value)}
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter') handleRename();
+                                                                if (e.key === 'Escape') setRenamingItem(null);
+                                                            }}
+                                                            autoFocus
+                                                            maxLength={80}
+                                                        />
+                                                        <button className="rename-save-btn" onClick={handleRename} disabled={renaming}>
+                                                            {renaming ? '…' : 'OK'}
+                                                        </button>
+                                                        <button className="rename-cancel-btn" onClick={() => setRenamingItem(null)}>✕</button>
+                                                    </div>
+                                                ) : (
+                                                    <button className="folder-name-btn" onClick={() => openFolder(folder.key)}>
+                                                        {folder.name}
+                                                    </button>
+                                                )}
                                             </div>
                                         </td>
                                         <td className="file-size">—</td>
@@ -362,7 +449,8 @@ function FileList({ onShowVersions, refreshTrigger, onToast, onFilesLoaded, onFo
                                         <td>
                                             <div className="file-actions">
                                                 <button className="file-action-btn open" title="Open" onClick={() => openFolder(folder.key)}><FiFolder /></button>
-                                                <button className="file-action-btn delete" title="Delete" onClick={() => handleDeleteFolder(folder)}><FiTrash2 /></button>
+                                                <button className="file-action-btn rename" title="Rename" onClick={() => startRename(folder)}><FiEdit2 /></button>
+                                                <button className="file-action-btn delete" title="Delete" onClick={() => askDeleteFolder(folder)}><FiTrash2 /></button>
                                             </div>
                                         </td>
                                     </tr>
@@ -373,7 +461,27 @@ function FileList({ onShowVersions, refreshTrigger, onToast, onFilesLoaded, onFo
                                         <td>
                                             <div className="file-name-cell">
                                                 <div className={`file-icon ${file.type}`}>{getFileIcon(file.type)}</div>
-                                                <span className="file-name-text" title={file.key}>{file.name}</span>
+                                                {renamingItem?.key === file.key ? (
+                                                    <div className="rename-input-wrap">
+                                                        <input
+                                                            className="rename-input"
+                                                            value={renameValue}
+                                                            onChange={(e) => setRenameValue(e.target.value)}
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter') handleRename();
+                                                                if (e.key === 'Escape') setRenamingItem(null);
+                                                            }}
+                                                            autoFocus
+                                                            maxLength={80}
+                                                        />
+                                                        <button className="rename-save-btn" onClick={handleRename} disabled={renaming}>
+                                                            {renaming ? '…' : 'OK'}
+                                                        </button>
+                                                        <button className="rename-cancel-btn" onClick={() => setRenamingItem(null)}>✕</button>
+                                                    </div>
+                                                ) : (
+                                                    <span className="file-name-text" title={file.key}>{file.name}</span>
+                                                )}
                                             </div>
                                         </td>
                                         <td className="file-size">{formatFileSize(file.size)}</td>
@@ -383,8 +491,9 @@ function FileList({ onShowVersions, refreshTrigger, onToast, onFilesLoaded, onFo
                                                 <button className="file-action-btn preview" title="Preview" onClick={() => setPreviewFile(file)}><FiEye /></button>
                                                 <button className="file-action-btn share" title="Share" onClick={() => setShareFile(file)}><FiShare2 /></button>
                                                 <button className="file-action-btn download" title="Download" onClick={() => handleDownload(file)}><FiDownload /></button>
+                                                <button className="file-action-btn rename" title="Rename" onClick={() => startRename(file)}><FiEdit2 /></button>
                                                 <button className="file-action-btn versions" title="Versions" onClick={() => onShowVersions?.(file)}><FiClock /></button>
-                                                <button className="file-action-btn delete" title="Delete" onClick={() => handleDelete(file)}><FiTrash2 /></button>
+                                                <button className="file-action-btn delete" title="Delete" onClick={() => askDeleteFile(file)}><FiTrash2 /></button>
                                             </div>
                                         </td>
                                     </tr>
@@ -400,6 +509,13 @@ function FileList({ onShowVersions, refreshTrigger, onToast, onFilesLoaded, onFo
             )}
             {shareFile && (
                 <FileShare file={shareFile} onClose={() => setShareFile(null)} onToast={onToast} />
+            )}
+            {confirmAction && (
+                <ConfirmDialog
+                    message={confirmAction.message}
+                    onConfirm={confirmAction.onConfirm}
+                    onCancel={() => setConfirmAction(null)}
+                />
             )}
         </>
     );

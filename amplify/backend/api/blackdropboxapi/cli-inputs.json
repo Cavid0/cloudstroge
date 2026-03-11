@@ -7,6 +7,20 @@
       "permissions": {
         "setting": "open"
       }
+    },
+    "/files/versions": {
+      "name": "/files/versions",
+      "lambdaFunction": "blackdropbox3b62dd27",
+      "permissions": {
+        "setting": "open"
+      }
+    },
+    "/files/versions/download": {
+      "name": "/files/versions/download",
+      "lambdaFunction": "blackdropbox3b62dd27",
+      "permissions": {
+        "setting": "open"
+      }
     }
   }
 }

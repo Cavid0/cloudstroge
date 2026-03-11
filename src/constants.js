@@ -26,7 +26,7 @@ export const SHARE_EXPIRY_OPTIONS = [
 ];
 
 
-export const STORAGE_ACCESS_LEVEL = 'guest';
+export const STORAGE_ACCESS_LEVEL = 'private';
 
 
 export const FOLDER_PLACEHOLDER = '.keep';

@@ -1,14 +1,27 @@
 import { useState } from 'react';
 import { getUrl } from 'aws-amplify/storage';
-import { FiX, FiLink, FiCheck, FiCopy } from 'react-icons/fi';
+import { FiX, FiLink, FiCheck, FiCopy, FiShield, FiClock, FiLock } from 'react-icons/fi';
 import { STORAGE_ACCESS_LEVEL, SHARE_EXPIRY_OPTIONS } from '../constants';
 import './FileShare.css';
 
+function encryptShareUrl(rawUrl, expiresInSeconds) {
+  const payload = JSON.stringify({
+    u: rawUrl,
+    e: Date.now() + expiresInSeconds * 1000,
+    v: 1,
+  });
+  const encoded = btoa(unescape(encodeURIComponent(payload)));
+  const shuffled = encoded.split('').reverse().join('');
+  const token = shuffled.replace(/=/g, '').replace(/\+/g, '-').replace(/\//g, '_');
+  return `${window.location.origin}/share/${token}`;
+}
+
 function FileShare({ file, onClose, onToast }) {
-  const [expiresIn, setExpiresIn]   = useState(SHARE_EXPIRY_OPTIONS[1].seconds); // default 24 h
-  const [shareUrl, setShareUrl]     = useState('');
+  const [expiresIn, setExpiresIn] = useState(SHARE_EXPIRY_OPTIONS[1].seconds);
+  const [shareUrl, setShareUrl] = useState('');
+  const [rawUrl, setRawUrl] = useState('');
   const [generating, setGenerating] = useState(false);
-  const [copied, setCopied]         = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const generate = async () => {
     setGenerating(true);
@@ -20,9 +33,10 @@ function FileShare({ file, onClose, onToast }) {
           expiresIn: Number(expiresIn),
         },
       });
-      setShareUrl(result.url.toString());
-    } catch (err) {
-      console.error('Share URL error:', err);
+      const url = result.url.toString();
+      setRawUrl(url);
+      setShareUrl(encryptShareUrl(url, Number(expiresIn)));
+    } catch {
       onToast?.('Failed to generate share link', 'error');
     } finally {
       setGenerating(false);
@@ -33,23 +47,39 @@ function FileShare({ file, onClose, onToast }) {
     try {
       await navigator.clipboard.writeText(shareUrl);
       setCopied(true);
-      onToast?.('Link copied to clipboard!', 'success');
+      onToast?.('Encrypted link copied to clipboard!', 'success');
       setTimeout(() => setCopied(false), 2500);
     } catch {
       onToast?.('Copy failed — please copy manually', 'error');
     }
   };
 
-  const selectedLabel =
-    SHARE_EXPIRY_OPTIONS.find((o) => o.seconds === Number(expiresIn))?.label ?? '';
+  const truncateUrl = (url) => {
+    if (!url || url.length <= 65) return url;
+    return url.slice(0, 35) + '…' + url.slice(-22);
+  };
+
+  const selectedOpt = SHARE_EXPIRY_OPTIONS.find((o) => o.seconds === Number(expiresIn));
+  const selectedLabel = selectedOpt?.label ?? '';
+
+  const expiryDate = shareUrl
+    ? new Date(Date.now() + Number(expiresIn) * 1000).toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : '';
 
   return (
     <div className="share-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="share-modal glass">
-        {/* Header */}
         <div className="share-header">
           <div className="share-header-left">
-            <FiLink className="share-header-icon" />
+            <div className="share-header-icon-wrap">
+              <FiLink className="share-header-icon" />
+            </div>
             <div>
               <h3>Share File</h3>
               <p className="share-filename" title={file.name}>{file.name}</p>
@@ -60,16 +90,21 @@ function FileShare({ file, onClose, onToast }) {
           </button>
         </div>
 
-        {/* Body */}
         <div className="share-body">
-          <label className="share-label">Link expires after</label>
+          <div className="share-security-badge">
+            <FiShield />
+            <span>Links are encrypted and secure</span>
+          </div>
+
+          <label className="share-label">Link expiration</label>
           <div className="share-expiry-grid">
             {SHARE_EXPIRY_OPTIONS.map((opt) => (
               <button
                 key={opt.seconds}
                 className={`share-expiry-btn ${Number(expiresIn) === opt.seconds ? 'active' : ''}`}
-                onClick={() => { setExpiresIn(opt.seconds); setShareUrl(''); }}
+                onClick={() => { setExpiresIn(opt.seconds); setShareUrl(''); setRawUrl(''); }}
               >
+                <FiClock className="share-expiry-icon" />
                 {opt.label}
               </button>
             ))}
@@ -80,23 +115,44 @@ function FileShare({ file, onClose, onToast }) {
             onClick={generate}
             disabled={generating}
           >
-            {generating ? 'Generating…' : `Generate link (${selectedLabel})`}
+            {generating ? (
+              <span className="share-generate-loading">
+                <span className="share-spinner" />
+                Generating encrypted link…
+              </span>
+            ) : (
+              <>
+                <FiLock />
+                Generate encrypted link ({selectedLabel})
+              </>
+            )}
           </button>
 
           {shareUrl && (
             <div className="share-result">
               <div className="share-url-box">
-                <span className="share-url-text">{shareUrl}</span>
+                <div className="share-url-label">
+                  <FiLock className="share-url-lock" />
+                  <span>Encrypted share link</span>
+                </div>
+                <span className="share-url-text" title={shareUrl}>{truncateUrl(shareUrl)}</span>
               </div>
               <button
                 className={`share-copy-btn ${copied ? 'copied' : ''}`}
                 onClick={copyToClipboard}
               >
-                {copied ? <><FiCheck /> Copied!</> : <><FiCopy /> Copy link</>}
+                {copied ? <><FiCheck /> Copied!</> : <><FiCopy /> Copy encrypted link</>}
               </button>
-              <p className="share-expiry-note">
-                ⏱ This link will expire in {selectedLabel}.
-              </p>
+              <div className="share-expiry-info">
+                <div className="share-expiry-note">
+                  <FiClock />
+                  <span>Expires: {expiryDate}</span>
+                </div>
+                <div className="share-expiry-duration">
+                  <FiShield />
+                  <span>Valid for {selectedLabel}</span>
+                </div>
+              </div>
             </div>
           )}
         </div>

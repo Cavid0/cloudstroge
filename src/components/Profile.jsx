@@ -18,7 +18,7 @@ import {
 import { STORAGE_ACCESS_LEVEL } from '../constants';
 import './Profile.css';
 
-function Profile({ user, onSignOut, onToast }) {
+function Profile({ user, onSignOut, onToast, onNameChange }) {
   const [attrs, setAttrs] = useState({ name: '', email: '' });
   const [loadingAttrs, setLoadingAttrs] = useState(true);
 
@@ -60,6 +60,7 @@ function Profile({ user, onSignOut, onToast }) {
     try {
       await updateUserAttributes({ userAttributes: { name: trimmed } });
       setAttrs((prev) => ({ ...prev, name: trimmed }));
+      onNameChange?.(trimmed);
       onToast?.('Name updated successfully!', 'success');
     } catch (err) {
       onToast?.(err.message || 'Failed to update name', 'error');

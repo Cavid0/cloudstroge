@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { FiX, FiDownload, FiClock } from 'react-icons/fi';
+import awsExports from '../aws-exports';
 import './FileVersions.css';
+
+const API_ENDPOINT = (awsExports.aws_cloud_logic_custom?.[0]?.endpoint || '');
 
 function FileVersions({ file, onClose }) {
     const [versions, setVersions] = useState([]);
@@ -30,18 +33,17 @@ function FileVersions({ file, onClose }) {
         const fetchVersions = async () => {
             setLoading(true);
             try {
-                const apiEndpoint = import.meta.env.VITE_API_ENDPOINT || '';
-                if (apiEndpoint) {
+                if (API_ENDPOINT) {
                     const response = await fetch(
-                        `${apiEndpoint}/files/versions?key=${encodeURIComponent(file.key)}`,
-                        {
-                            headers: {
-                                'Content-Type': 'application/json',
-                            },
-                        }
+                        `${API_ENDPOINT}/files/versions?key=${encodeURIComponent(file.key)}`,
+                        { headers: { 'Content-Type': 'application/json' } }
                     );
-                    const data = await response.json();
-                    setVersions(data.versions || []);
+                    if (response.ok) {
+                        const data = await response.json();
+                        setVersions(data.versions || []);
+                    } else {
+                        throw new Error('API error');
+                    }
                 } else {
                     setVersions([
                         {
@@ -72,17 +74,16 @@ function FileVersions({ file, onClose }) {
 
     const handleDownloadVersion = async (version) => {
         try {
-            const apiEndpoint = import.meta.env.VITE_API_ENDPOINT || '';
-            if (apiEndpoint) {
+            if (API_ENDPOINT) {
                 const response = await fetch(
-                    `${apiEndpoint}/files/download?key=${encodeURIComponent(file.key)}&versionId=${version.versionId}`,
-                    {
-                        headers: { 'Content-Type': 'application/json' },
-                    }
+                    `${API_ENDPOINT}/files/versions/download?key=${encodeURIComponent(file.key)}&versionId=${encodeURIComponent(version.versionId)}`,
+                    { headers: { 'Content-Type': 'application/json' } }
                 );
-                const data = await response.json();
-                if (data.url) {
-                    window.open(data.url, '_blank');
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.url) {
+                        window.open(data.url, '_blank');
+                    }
                 }
             }
         } catch (err) {

@@ -16,86 +16,72 @@ function FileUpload({ onUploadComplete, currentPath = '' }) {
         return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
     };
 
-    const handleUpload = async (file) => {
-        if (file.size > FILE_SIZE_LIMIT) {
-            setUploads((prev) => [
-                ...prev,
-                {
-                    id: Date.now() + '-' + file.name,
-                    name: file.name,
-                    size: file.size,
-                    progress: 0,
-                    status: 'error',
-                    error: `File exceeds ${FILE_SIZE_LIMIT_LABEL} limit`,
-                },
-            ]);
-            return;
-        }
-
-        const uploadId = Date.now() + '-' + file.name;
-        const uploadKey = currentPath + file.name;
-
-        setUploads((prev) => [
-            ...prev,
-            {
-                id: uploadId,
-                name: file.name,
-                size: file.size,
-                progress: 0,
-                status: 'uploading',
-            },
-        ]);
-
-        try {
-            const result = uploadData({
-                key: uploadKey,
-                data: file,
-                options: {
-                    accessLevel: STORAGE_ACCESS_LEVEL,
-                    contentType: file.type,
-                    onProgress: ({ transferredBytes, totalBytes }) => {
-                        const progress = Math.round((transferredBytes / totalBytes) * 100);
-                        setUploads((prev) =>
-                            prev.map((u) =>
-                                u.id === uploadId ? { ...u, progress } : u
-                            )
-                        );
-                    },
-                },
-            });
-
-            await result.result;
-
-            setUploads((prev) =>
-                prev.map((u) =>
-                    u.id === uploadId ? { ...u, status: 'complete', progress: 100 } : u
-                )
-            );
-
-            if (onUploadComplete) {
-                onUploadComplete({ key: uploadKey, name: file.name, size: file.size });
-            }
-
-            setTimeout(() => {
-                setUploads((prev) => prev.filter((u) => u.id !== uploadId));
-            }, 3000);
-        } catch (err) {
-            console.error('Upload error:', err);
-            setUploads((prev) =>
-                prev.map((u) =>
-                    u.id === uploadId
-                        ? { ...u, status: 'error', error: err.message }
-                        : u
-                )
-            );
-        }
-    };
-
     const onDrop = useCallback(
         (acceptedFiles) => {
-            acceptedFiles.forEach((file) => handleUpload(file));
+            acceptedFiles.forEach((file) => {
+                if (file.size > FILE_SIZE_LIMIT) {
+                    setUploads((prev) => [
+                        ...prev,
+                        {
+                            id: Date.now() + '-' + file.name,
+                            name: file.name,
+                            size: file.size,
+                            progress: 0,
+                            status: 'error',
+                            error: `File exceeds ${FILE_SIZE_LIMIT_LABEL} limit`,
+                        },
+                    ]);
+                    return;
+                }
+
+                const uploadId = Date.now() + '-' + file.name;
+                const uploadKey = currentPath + file.name;
+
+                setUploads((prev) => [
+                    ...prev,
+                    { id: uploadId, name: file.name, size: file.size, progress: 0, status: 'uploading' },
+                ]);
+
+                const task = uploadData({
+                    key: uploadKey,
+                    data: file,
+                    options: {
+                        accessLevel: STORAGE_ACCESS_LEVEL,
+                        contentType: file.type,
+                        onProgress: ({ transferredBytes, totalBytes }) => {
+                            const progress = Math.round((transferredBytes / totalBytes) * 100);
+                            setUploads((prev) =>
+                                prev.map((u) => (u.id === uploadId ? { ...u, progress } : u))
+                            );
+                        },
+                    },
+                });
+
+                task.result
+                    .then(() => {
+                        setUploads((prev) =>
+                            prev.map((u) =>
+                                u.id === uploadId ? { ...u, status: 'complete', progress: 100 } : u
+                            )
+                        );
+                        if (onUploadComplete) {
+                            onUploadComplete({ key: uploadKey, name: file.name, size: file.size });
+                        }
+                        setTimeout(() => {
+                            setUploads((prev) => prev.filter((u) => u.id !== uploadId));
+                        }, 3000);
+                    })
+                    .catch((err) => {
+                        console.error('Upload error:', err);
+                        setUploads((prev) =>
+                            prev.map((u) =>
+                                u.id === uploadId ? { ...u, status: 'error', error: err.message } : u
+                            )
+                        );
+                    });
+            });
         },
-        []
+        [currentPath, onUploadComplete]
     );
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({

@@ -102,7 +102,7 @@
 
 .version-item.latest {
     border-color: var(--color-accent-primary);
-    background: rgba(99, 102, 241, 0.05);
+    background: rgba(0, 97, 255, 0.05);
 }
 
 .version-number {

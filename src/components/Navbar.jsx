@@ -3,7 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { FiBox, FiLogOut, FiHome, FiUser } from 'react-icons/fi';
 import './Navbar.css';
 
-function Navbar({ user, onSignOut }) {
+function Navbar({ user, userName, onSignOut }) {
     const location = useLocation();
 
     const handleSignOut = async () => {
@@ -15,11 +15,8 @@ function Navbar({ user, onSignOut }) {
         }
     };
 
-    const getInitials = () => {
-        if (!user) return '?';
-        const email = user.signInDetails?.loginId || user.username || '';
-        return email.charAt(0).toUpperCase();
-    };
+    const displayName = userName || user?.signInDetails?.loginId || user?.username || 'User';
+    const initials = displayName.charAt(0).toUpperCase();
 
     return (
         <nav className="navbar glass">
@@ -49,8 +46,8 @@ function Navbar({ user, onSignOut }) {
 
             <div className="navbar-right">
                 <div className="navbar-user">
-                    <div className="navbar-user-avatar">{getInitials()}</div>
-                    <span>{user?.signInDetails?.loginId || user?.username || 'User'}</span>
+                    <div className="navbar-user-avatar">{initials}</div>
+                    <span>{displayName}</span>
                 </div>
                 <button className="navbar-signout" onClick={handleSignOut}>
                     <FiLogOut />

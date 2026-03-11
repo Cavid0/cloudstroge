@@ -69,7 +69,8 @@
             },
             "REGION": {
               "Ref": "AWS::Region"
-            }
+            },
+            "STORAGE_BLACKDROPBOXFILES_BUCKETNAME": "blackdropboxfilesda4d9-dev"
           }
         },
         "Role": {
@@ -164,6 +165,35 @@
           ]
         }
       }
+    },
+    "CustomLambdaExecutionPolicy": {
+      "Type": "AWS::IAM::Policy",
+      "Properties": {
+        "PolicyName": "custom-lambda-execution-policy",
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Action": [
+                "s3:ListBucketVersions",
+                "s3:GetObjectVersion",
+                "s3:ListObjectVersions"
+              ],
+              "Resource": [
+                "arn:aws:s3:::blackdropboxfilesda4d9-dev",
+                "arn:aws:s3:::blackdropboxfilesda4d9-dev/*"
+              ],
+              "Effect": "Allow"
+            }
+          ]
+        },
+        "Roles": [
+          {
+            "Ref": "LambdaExecutionRole"
+          }
+        ]
+      },
+      "DependsOn": "LambdaExecutionRole"
     }
   },
   "Outputs": {
